@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db.models.signals import post_save
 
 class User(AbstractUser):
     username = models.CharField(unique=True, max_length=16)
@@ -29,3 +30,14 @@ class Profile(models.Model):
     
     # def save(self, force_insert = ..., force_update = ..., using = ..., update_fields = ...):
     #     return super().save(force_insert, force_update, using, update_fields)
+
+
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+def save_user_profile(sender, instance, **kwargs):
+    instance.profile.save()
+
+post_save.connect(create_user_profile, sender=User)
+post_save.connect(save_user_profile, sender=User)
