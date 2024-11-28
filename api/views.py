@@ -8,6 +8,10 @@ from rest_framework.permissions import AllowAny
 from userauths.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from lms_backend import settings    
 
 def generate_otp():
     otp = ''.join(random.choices(string.digits, k=6))
@@ -38,7 +42,18 @@ class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
             user.save()
             
             link = f"http://localhost:5173/create-new-password/?otp={user.otp}&uuidb64={uuidb64}&token={refresh_token}"
-            print("link",link)
+            
+            context = {
+                "link": link,
+                "username": user.username
+            }
+            subject = "Password Reset"
+            html_content = render_to_string("email/password_reset_email.html", context)
+            text_content = strip_tags(html_content)
+            email = EmailMultiAlternatives(
+                subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
+            email.attach_alternative(html_content, "text/html")
+            email.send()
 
         return user
     
